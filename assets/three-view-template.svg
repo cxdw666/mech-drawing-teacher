@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1320" width="1000" height="1320" font-family="'Microsoft YaHei',sans-serif">
+  <!-- 三视图版式骨架 v1 · 只允许修改 id 以 content- 开头的分组，布局与辅助线不得改动 -->
+  <defs>
+    <style>
+      .frame { fill:none; stroke:#bbbbbb; stroke-width:1; stroke-dasharray:4 4; }
+      .aux   { stroke:#9ec7e8; stroke-width:1; stroke-dasharray:6 4; fill:none; }
+      .aux45 { stroke:#e06c5a; stroke-width:1.6; }
+      .lab   { font-size:20px; fill:#333; }
+      .sub   { font-size:15px; fill:#e06c5a; }
+      .thick { stroke:#111; stroke-width:3; fill:none; }
+      .thin  { stroke:#111; stroke-width:1; fill:none; }
+      .hid   { stroke:#111; stroke-width:1.4; stroke-dasharray:7 4; fill:none; }
+      .ccl   { stroke:#111; stroke-width:1; stroke-dasharray:14 3 2 3; fill:none; }
+    </style>
+  </defs>
+
+  <!-- ① 标题区 -->
+  <g id="title">
+    <text x="40" y="46" class="lab" font-size="24">【题号】带切口立体的三视图 —— 作图过程</text>
+  </g>
+
+  <!-- ② 立体形成过程区（轴测示意占位，可由模型改为文字三行） -->
+  <g id="content-3d">
+    <rect x="40" y="70" width="280" height="200" class="frame"/>
+    <text x="52" y="96" class="sub">① 原形（轴测示意）</text>
+  </g>
+
+  <!-- ③ 主视图 -->
+  <g id="content-main">
+    <rect x="120" y="330" width="240" height="200" class="frame"/>
+    <text x="120" y="316" class="lab">主视图</text>
+  </g>
+
+  <!-- ④ 左视图（主视图正右方） -->
+  <g id="content-left">
+    <rect x="520" y="330" width="240" height="200" class="frame"/>
+    <text x="520" y="316" class="lab">左视图</text>
+  </g>
+
+  <!-- ⑤ 俯视图（主视图正下方） -->
+  <g id="content-top">
+    <rect x="120" y="650" width="240" height="200" class="frame"/>
+    <text x="120" y="636" class="lab">俯视图</text>
+  </g>
+
+  <!-- ⑥ 辅助投影线：高平齐（主↔左） -->
+  <line x1="120" y1="360" x2="760" y2="360" class="aux"/>
+  <line x1="120" y1="500" x2="760" y2="500" class="aux"/>
+  <text x="800" y="364" class="sub">高平齐</text>
+
+  <!-- ⑦ 辅助投影线：长对正（主↔俯） -->
+  <line x1="160" y1="330" x2="160" y2="850" class="aux"/>
+  <line x1="320" y1="330" x2="320" y2="850" class="aux"/>
+  <text x="170" y="880" class="sub">长对正</text>
+
+  <!-- ⑧ 45° 线：宽相等（俯↔左） -->
+  <line x1="520" y1="650" x2="820" y2="950" class="aux45"/>
+  <text x="700" y="800" class="sub">45°（宽相等）</text>
+  <line x1="160" y1="720" x2="820" y2="720" class="aux"/>
+  <line x1="520" y1="720" x2="820" y2="720" class="aux"/>
+
+  <!-- ⑨ 图例 -->
+  <g id="legend">
+    <line x1="60" y1="1000" x2="130" y2="1000" class="thick"/><text x="140" y="1006" class="lab" font-size="16">可见轮廓：粗实线</text>
+    <line x1="60" y1="1032" x2="130" y2="1032" class="hid"/><text x="140" y="1038" class="lab" font-size="16">不可见轮廓：细虚线</text>
+    <line x1="60" y1="1064" x2="130" y2="1064" class="ccl"/><text x="140" y="1070" class="lab" font-size="16">轴线 / 中心线：细点画线</text>
+    <line x1="60" y1="1096" x2="130" y2="1096" class="aux"/><text x="140" y="1102" class="lab" font-size="16">辅助投影线：浅色细实线</text>
+  </g>
+
+  <!-- ⑩ 强制声明 -->
+  <text x="40" y="1170" class="lab" font-size="18" fill="#b00">示意 · 不按比例 · 仅示拓扑关系</text>
+  <text x="40" y="1200" class="lab" font-size="15" fill="#666">本示意图未表达：线宽实际规格、剖面线间距、尺寸数字与公差、标题栏</text>
+</svg>
