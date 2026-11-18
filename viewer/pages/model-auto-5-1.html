@@ -1,0 +1,139 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模型自动生成的零件（v0.6 输出原样） · 三维还原</title>
+<script type="importmap">{"imports":{"three":"../vendor/three.module.js","three/addons/":"../vendor/jsm/","three-mesh-bvh":"../vendor/jsm/three-mesh-bvh.module.js"}}</script>
+<style>:root{--cy:#35e0ff;--cy2:#0af;--bg:#04070d}*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}body{background:radial-gradient(ellipse at 50% 42%,#0a1a26 0%,#050b12 45%,#010306 100%);color:#cfe8f5;font-family:Consolas,"Microsoft YaHei",monospace;overflow:hidden}#stage{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;cursor:grab}canvas:active{cursor:grabbing}.panel{position:fixed;background:linear-gradient(180deg,rgba(8,20,32,.82),rgba(6,14,22,.7));border:1px solid rgba(53,224,255,.22);box-shadow:0 0 30px rgba(53,224,255,.09) inset,0 8px 40px rgba(0,0,0,.5);backdrop-filter:blur(8px)}.panel::before,.panel::after{content:"";position:absolute;width:16px;height:16px;border:2px solid var(--cy);opacity:.85}.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}#info{position:fixed;top:26px;left:26px;width:392px;padding:20px 22px;z-index:4}#info h1{font-size:18px;color:#fff;letter-spacing:1.5px;text-shadow:0 0 18px rgba(53,224,255,.45)}#info h1::before{content:"▮ ";color:var(--cy)}#sub{font-size:11.5px;line-height:1.75;color:#86aec2;margin:9px 0 15px}.dim{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:6px 0;border-bottom:1px dashed rgba(53,224,255,.13)}.dim b{color:var(--cy);font-weight:600;text-shadow:0 0 12px rgba(53,224,255,.5)}.dim span{color:#6d94a8;text-align:right}#views{position:fixed;bottom:26px;left:26px;width:660px;padding:15px 20px;display:flex;gap:20px;z-index:4}.view{flex:1}.view h4{font-size:12px;color:var(--cy);margin-bottom:6px;letter-spacing:1px}.view p{font-size:11.5px;line-height:1.65;color:#7fa8bd}#ctrl{position:fixed;top:26px;right:26px;display:flex;flex-direction:column;gap:9px;z-index:5}button{cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:1.2px;color:var(--cy);background:linear-gradient(180deg,rgba(10,26,40,.9),rgba(6,16,26,.9));border:1px solid rgba(53,224,255,.3);padding:10px 15px;transition:.18s;text-align:left;min-width:150px}button:hover{background:rgba(53,224,255,.16);box-shadow:0 0 18px rgba(53,224,255,.4);border-color:var(--cy);color:#eafcff}#hint{position:fixed;bottom:26px;right:26px;font-size:11px;color:#4d7186;text-align:right;line-height:1.9}.scan{position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(53,224,255,.022) 0 1px,transparent 1px 3px)}.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(0,0,0,.55) 100%)}</style></head><body>
+<div id="stage"><canvas id="cv"></canvas></div>
+<div class="scan"></div><div class="vig"></div>
+<div id="info" class="panel"><h1>模型自动生成的零件（v0.6 输出原样）</h1>
+<div id="sub">φ60×80 圆柱 · 同轴通孔 φ30 · 径向孔 φ12 沿 Z（正对主视）· 模型自写 rotation [90,0,0] 与余量</div><div class="dim"><b>φ60 × 80</b><span>圆柱本体</span></div><div class="dim"><b>φ30 / h84</b><span>通孔，比外圆柱长 4 mm</span></div><div class="dim"><b>φ12 / h66</b><span>径向孔，两端各余 3 mm</span></div></div>
+<div id="views" class="panel"><div class="view"><h4>主视图</h4><p>矩形 + 径向孔显示为圆</p></div><div class="view"><h4>俯视图</h4><p>同心圆 φ60 / φ30</p></div><div class="view"><h4>左视图</h4><p>矩形 + 径向孔为圆</p></div></div>
+<div id="ctrl"><button onclick="v.setView('iso')">等轴测视角</button><button onclick="v.setView('front')">主视图方向</button><button onclick="v.setView('top')">俯视图方向</button><button onclick="v.setView('left')">左视图方向</button><button onclick="v.toggleAuto()">自动旋转 开/关</button><button onclick="v.toggleWire()">线框模式</button><button onclick="v.reset()">重置</button></div>
+<div id="hint">拖拽 = 旋转　滚轮 = 缩放　右键 = 平移<br>three.js · CSG 实时布尔 · 光追风格泛光</div>
+<script type="module">import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RoomEnvironment } from "three/addons/environments_RoomEnvironment.js";
+import { Brush, Evaluator, SUBTRACTION, ADDITION } from "three/addons/three-bvh-csg.module.js";
+
+const SPEC = {"id":"model-auto-5-1","title":"模型自动生成的零件（v0.6 输出原样）","subtitle":"φ60×80 圆柱 · 同轴通孔 φ30 · 径向孔 φ12 沿 Z（正对主视）· 模型自写 rotation [90,0,0] 与余量","unit":"mm","cell":2,"bounds":{"min":[-40,-10,-40],"max":[40,90,40]},"solids":[{"type":"cylinder","pos":[0,40,0],"radius":30,"height":80,"rotation":[0,0,0],"shape":"cylinder","r":30,"h":80,"op":"base"},{"type":"cylinder","op":"sub","pos":[0,40,0],"radius":15,"height":84,"rotation":[0,0,0],"shape":"cylinder","r":15,"h":84},{"type":"cylinder","op":"sub","pos":[0,40,0],"radius":6,"height":66,"rotation":[90,0,0],"shape":"cylinder","r":6,"h":66}],"dims":[{"label":"φ60 × 80","note":"圆柱本体"},{"label":"φ30 / h84","note":"通孔，比外圆柱长 4 mm"},{"label":"φ12 / h66","note":"径向孔，两端各余 3 mm"}],"views":{"主视图":"矩形 + 径向孔显示为圆","俯视图":"同心圆 φ60 / φ30","左视图":"矩形 + 径向孔为圆"}};
+const canvas = document.getElementById("cv");
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x060b13, 380, 1300);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.5, 6000);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envRT = pmrem.fromScene(new RoomEnvironment(), 0.05);
+scene.environment = envRT.texture;
+
+scene.add(new THREE.HemisphereLight(0x9fe8ff, 0x061019, 1.25));
+const key = new THREE.DirectionalLight(0xffffff, 2.9); key.position.set(160, 300, 210); scene.add(key);
+const rim = new THREE.DirectionalLight(0x35e0ff, 2.2); rim.position.set(-220, 120, -180); scene.add(rim);
+const fill = new THREE.DirectionalLight(0x2a6cff, 1.1); fill.position.set(-120, -120, 160); scene.add(fill);
+
+const evaluator = new Evaluator();
+evaluator.useGroups = false;
+const mat = new THREE.MeshPhysicalMaterial({ color: 0x1a5f80, metalness: 0.32, roughness: 0.34, clearcoat: 0.85, clearcoatRoughness: 0.2, envMapIntensity: 1.05, side: THREE.DoubleSide });
+let acc = null;
+for (const s of SPEC.solids) {
+  const geo = s.shape === "cylinder"
+    ? new THREE.CylinderGeometry(s.r, s.r, s.h, 128, 1)
+    : new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]);
+  const b = new Brush(geo, mat);
+  b.position.set(s.pos[0], s.pos[1], s.pos[2]);
+  if (s.rotation) b.rotation.set(s.rotation[0] * Math.PI / 180, s.rotation[1] * Math.PI / 180, s.rotation[2] * Math.PI / 180);
+  b.updateMatrixWorld();
+  if (!acc) { acc = b; continue; }
+  acc = evaluator.evaluate(acc, b, s.op === "sub" ? SUBTRACTION : ADDITION);
+}
+const mesh = new THREE.Mesh(acc.geometry, mat);
+mesh.geometry.computeVertexNormals();
+scene.add(mesh);
+
+
+
+acc.geometry.computeBoundingBox();
+const bb = acc.geometry.boundingBox;
+const center = bb.getCenter(new THREE.Vector3());
+const sizeV = bb.getSize(new THREE.Vector3());
+const radius = sizeV.length() * 0.5;   // 包围球半径，取景用它才不会切边
+
+const gridSpan = Math.ceil(radius * 8);
+const grid = new THREE.GridHelper(gridSpan, Math.round(gridSpan / 10), 0x2aa9c8, 0x0e3346);
+grid.position.set(center.x, bb.min.y - 0.6, center.z);
+grid.material.transparent = true; grid.material.opacity = 0.55;
+scene.add(grid);
+
+const glowCanvas = document.createElement("canvas"); glowCanvas.width = glowCanvas.height = 256;
+const gctx = glowCanvas.getContext("2d");
+const grad = gctx.createRadialGradient(128, 128, 4, 128, 128, 126);
+grad.addColorStop(0, "rgba(53,224,255,0.55)"); grad.addColorStop(0.45, "rgba(30,140,190,0.18)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+gctx.fillStyle = grad; gctx.fillRect(0, 0, 256, 256);
+const glowTex = new THREE.CanvasTexture(glowCanvas);
+const glow = new THREE.Mesh(new THREE.PlaneGeometry(radius * 5.2, radius * 5.2),
+  new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+glow.rotation.x = -Math.PI / 2;
+glow.position.set(center.x, bb.min.y - 0.5, center.z);
+scene.add(glow);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.target.copy(center);
+controls.minDistance = radius * 1.25;
+controls.maxDistance = radius * 9;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.15;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.32, 0.55, 0.9);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function place(distMul) {
+  const d = radius * (distMul || 4.3);
+  const shift = -radius * 0.42;
+  camera.position.set(center.x + d * 0.72, center.y + d * 0.52, center.z + d * 0.66);
+  controls.target.set(center.x + shift * 0.75, center.y - radius * 0.05, center.z);
+  camera.near = radius * 0.02; camera.far = radius * 40;
+  camera.updateProjectionMatrix();
+}
+place();
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+
+(function loop() { requestAnimationFrame(loop); controls.update(); composer.render(); })();
+
+const api = {
+  setView: function (n) {
+    controls.autoRotate = false;
+    const d = Math.round(radius * 4.3);
+    if (n === "front") camera.position.set(center.x, center.y, center.z + d);
+    if (n === "top") camera.position.set(center.x, center.y + d, center.z + 0.01);
+    if (n === "left") camera.position.set(center.x - d, center.y, center.z);
+    if (n === "iso") { camera.position.set(center.x + d * 0.72, center.y + d * 0.52, center.z + d * 0.66); controls.autoRotate = true; }
+    camera.lookAt(center); controls.update();
+  },
+  toggleAuto: function () { controls.autoRotate = !controls.autoRotate; },
+  toggleWire: function () { mat.wireframe = !mat.wireframe; edges.visible = !mat.wireframe; },
+  reset: function () { controls.autoRotate = true; controls.target.copy(center); place(); }
+};
+window.v = api;</script>
+</body></html>
