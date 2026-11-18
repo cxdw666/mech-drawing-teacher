@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+Thumbs.db
+__pycache__/
+.env
+*.local.md
+.idea/
+.vscode/
+
+# 评测原始输出（体积大、可重跑，用 make3d/eval 随时能再生成）
+evals/runs/
+evals/stage1-sample.md
+
+# 临时
+*.zip
+*.7z.exe
