@@ -68,7 +68,7 @@ function normalize(raw) {
   const all = [].concat(raw.solids || [], fold(raw.subtractions||raw.cuts||raw.removals,"sub"), fold(raw.additions||raw.adds||raw.bosses,"add"));
   out.solids = all.map(s => {
     const o = Object.assign({}, s);
-    o.shape = s.shape || s.type || "box";
+    o.shape = s.shape || s.type || ((s.r !== undefined || s.radius !== undefined) && (s.h !== undefined || s.height !== undefined) ? "cylinder" : "box");
     if (s.radius !== undefined && s.r === undefined) o.r = s.radius;
     if (s.height !== undefined && s.h === undefined) o.h = s.height;
     o.op = s.op === "subtract" ? "sub" : s.op === "union" ? "add" : (s.op || "base");
@@ -89,8 +89,13 @@ function build(specIn) {
   let acc = null;
   for (const s of spec.solids) {
     let g;
-    if (s.shape === "cylinder") g = new THREE.CylinderGeometry(s.r, s.r, s.h, 96, 1);
-    else if (s.shape === "box") g = new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]);
+    if (s.shape === "cylinder") {
+      if (s.r === undefined || s.h === undefined) throw new Error("cylinder 需要 r 与 h（第 " + (spec.solids.indexOf(s) + 1) + " 个基本体）");
+      g = new THREE.CylinderGeometry(s.r, s.r, s.h, 96, 1);
+    } else if (s.shape === "box") {
+      if (!s.size) throw new Error("box 需要 size:[x,y,z]（第 " + (spec.solids.indexOf(s) + 1) + " 个基本体）");
+      g = new THREE.BoxGeometry(s.size[0], s.size[1], s.size[2]);
+    }
     else throw new Error("不支持的基本体: " + s.shape);
     const b = new Brush(g, mat);
     b.position.set(s.pos[0], s.pos[1], s.pos[2]);
